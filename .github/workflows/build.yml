@@ -1,0 +1,80 @@
+name: Build Storage Cleaner
+
+on:
+  push:
+    tags: [ 'v*.*.*' ]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libudev-dev clang
+
+    - name: Build for Linux ${{ matrix.arch }}
+      run: |
+        if [ "${{ matrix.arch }}" = "arm64" ]; then
+          clang -o storage_cleaner-${{ matrix.arch }} storage_cleaner.c -ludev -lpthread -Os -s --target=aarch64-linux-gnu
+        else
+          clang -o storage_cleaner-${{ matrix.arch }} storage_cleaner.c -ludev -lpthread -Os -s
+        fi
+
+    - name: Upload Linux binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: storage_cleaner-linux-${{ matrix.arch }}
+        path: storage_cleaner-${{ matrix.arch }}
+
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build for macOS ${{ matrix.arch }}
+      run: |
+        if [ "${{ matrix.arch }}" = "arm64" ]; then
+          clang -o storage_cleaner-arm64 storage_cleaner.c -framework DiskArbitration -framework IOKit -Os -s -arch arm64
+        else
+          clang -o storage_cleaner-x64 storage_cleaner.c -framework DiskArbitration -framework IOKit -Os -s -arch x86_64
+        fi
+
+    - name: Upload macOS binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: storage_cleaner-macos-${{ matrix.arch }}
+        path: storage_cleaner-${{ matrix.arch }}
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Build for Windows
+      run: |
+        cl storage_cleaner.c /link setupapi.lib cfgmgr32.lib /O2 /Fe:storage_cleaner.exe
+
+    - name: Upload Windows binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: storage_cleaner-windows-x64
+        path: storage_cleaner.exe
