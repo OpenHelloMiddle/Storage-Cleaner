@@ -7,10 +7,10 @@ on:
 
 jobs:
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
-        arch: [x64, arm64]
+        arch: [x64]
 
     steps:
     - name: Checkout code
@@ -23,11 +23,7 @@ jobs:
 
     - name: Build for Linux ${{ matrix.arch }}
       run: |
-        if [ "${{ matrix.arch }}" = "arm64" ]; then
-          clang -o storage_cleaner-${{ matrix.arch }} storage_cleaner.c -ludev -lpthread -Os -s --target=aarch64-linux-gnu
-        else
-          clang -o storage_cleaner-${{ matrix.arch }} storage_cleaner.c -ludev -lpthread -Os -s
-        fi
+        clang -o storage_cleaner-${{ matrix.arch }} storage_cleaner.c -ludev -lpthread -Os -s
 
     - name: Upload Linux binary
       uses: actions/upload-artifact@v4
@@ -36,7 +32,7 @@ jobs:
         path: storage_cleaner-${{ matrix.arch }}
 
   build-macos:
-    runs-on: macos-latest
+    runs-on: macos-12
     strategy:
       matrix:
         arch: [x64, arm64]
@@ -60,7 +56,7 @@ jobs:
         path: storage_cleaner-${{ matrix.arch }}
 
   build-windows:
-    runs-on: windows-latest
+    runs-on: windows-2019
 
     steps:
     - name: Checkout code

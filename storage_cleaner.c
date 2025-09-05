@@ -3,11 +3,14 @@
 #include <string.h>
 
 #ifdef _WIN32
+#define WINVER 0x0600
+#define _WIN32_WINNT 0x0600
 #include <windows.h>
 #include <setupapi.h>
 #include <winioctl.h>
 #include <cfgmgr32.h>
 #include <devguid.h>
+#include <dbt.h>
 #include <process.h>
 #pragma comment(lib, "setupapi.lib")
 #pragma comment(lib, "cfgmgr32.lib")
@@ -272,7 +275,6 @@ int erase_partition_table(const char* device_path) {
         free(zero_buffer);
         close(fd);
         #endif
-
         return 0;
 }
 
@@ -370,7 +372,6 @@ int fill_with_zeros(const char* device_path) {
     free(zero_buffer);
     close(fd);
     #endif
-
     return 0;
 }
 
@@ -539,42 +540,12 @@ unsigned __stdcall wipe_device_thread(void* arg) {
 
         CFDictionarySetValue(match, kDADiskDescriptionMediaWholeKey, kCFBooleanTrue);
 
-        CFArrayRef disks = DADiskCopyMatch(session, match);
-        CFRelease(match);
+        DASessionSetDispatchQueue(session, dispatch_get_main_queue());
 
-        if (!disks) {
-            CFRelease(session);
-            return;
-        }
+        DARegisterDiskAppearedCallback(session, kDADiskDescriptionMatchVolume, disk_appeared_callback, NULL);
 
-        CFIndex count = CFArrayGetCount(disks);
-        for (CFIndex i = 0; i < count; i++) {
-            DADiskRef disk = (DADiskRef)CFArrayGetValueAtIndex(disks, i);
-            CFRetain(disk);
+        CFRunLoopRun();
 
-            CFStringRef devicePath = DADiskGetBSDName(disk);
-            if (devicePath) {
-                char bsdName[256];
-                if (CFStringGetCString(devicePath, bsdName, sizeof(bsdName), kCFStringEncodingUTF8)) {
-                    char raw_device[PATH_MAX];
-                    snprintf(raw_device, sizeof(raw_device), "/dev/%s", bsdName);
-
-                    if (!is_system_drive_mac(raw_device)) {
-                        char* device_path_copy = strdup(raw_device);
-                        pthread_t thread;
-                        if (pthread_create(&thread, NULL, wipe_device_thread, device_path_copy) == 0) {
-                            pthread_detach(thread);
-                        } else {
-                            free(device_path_copy);
-                        }
-                    }
-                }
-            }
-
-            CFRelease(disk);
-        }
-
-        CFRelease(disks);
         CFRelease(session);
     }
     #else
