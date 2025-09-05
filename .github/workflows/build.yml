@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         arch: [x64]
@@ -23,16 +23,16 @@ jobs:
 
     - name: Build for Linux ${{ matrix.arch }}
       run: |
-        clang -o storage_cleaner-${{ matrix.arch }} storage_cleaner.c -ludev -lpthread -Os -s
+        clang -o storage_cleaner storage_cleaner.c -ludev -lpthread -Os -s
 
     - name: Upload Linux binary
       uses: actions/upload-artifact@v4
       with:
         name: storage_cleaner-linux-${{ matrix.arch }}
-        path: storage_cleaner-${{ matrix.arch }}
+        path: storage_cleaner
 
   build-macos:
-    runs-on: macos-12
+    runs-on: macos-latest
     strategy:
       matrix:
         arch: [x64, arm64]
@@ -44,19 +44,19 @@ jobs:
     - name: Build for macOS ${{ matrix.arch }}
       run: |
         if [ "${{ matrix.arch }}" = "arm64" ]; then
-          clang -o storage_cleaner-arm64 storage_cleaner.c -framework DiskArbitration -framework IOKit -Os -s -arch arm64
+          clang -o storage_cleaner storage_cleaner.c -framework DiskArbitration -framework IOKit -Os -s -arch arm64
         else
-          clang -o storage_cleaner-x64 storage_cleaner.c -framework DiskArbitration -framework IOKit -Os -s -arch x86_64
+          clang -o storage_cleaner storage_cleaner.c -framework DiskArbitration -framework IOKit -Os -s -arch x86_64
         fi
 
     - name: Upload macOS binary
       uses: actions/upload-artifact@v4
       with:
         name: storage_cleaner-macos-${{ matrix.arch }}
-        path: storage_cleaner-${{ matrix.arch }}
+        path: storage_cleaner
 
   build-windows:
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     steps:
     - name: Checkout code

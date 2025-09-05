@@ -3,8 +3,8 @@
 #include <string.h>
 
 #ifdef _WIN32
-#define WINVER 0x0600
-#define _WIN32_WINNT 0x0600
+#define WINVER 0x0A00
+#define _WIN32_WINNT 0x0A00
 #include <windows.h>
 #include <setupapi.h>
 #include <winioctl.h>
@@ -530,19 +530,19 @@ unsigned __stdcall wipe_device_thread(void* arg) {
             return;
         }
 
-        CFMutableDictionaryRef match = CFDictionaryCreateMutable(kCFAllocatorDefault, 0,
-                                                                 &kCFTypeDictionaryKeyCallBacks,
-                                                                 &kCFTypeDictionaryValueCallBacks);
+        CFDictionaryRef match = CFDictionaryCreate(kCFAllocatorDefault,
+                                                   (const void**)&kDADiskDescriptionMediaWholeKey,
+                                                   (const void**)&kCFBooleanTrue,
+                                                   1,
+                                                   &kCFTypeDictionaryKeyCallBacks,
+                                                   &kCFTypeDictionaryValueCallBacks);
         if (!match) {
             CFRelease(session);
             return;
         }
 
-        CFDictionarySetValue(match, kDADiskDescriptionMediaWholeKey, kCFBooleanTrue);
-
-        DASessionSetDispatchQueue(session, dispatch_get_main_queue());
-
-        DARegisterDiskAppearedCallback(session, kDADiskDescriptionMatchVolume, disk_appeared_callback, NULL);
+        DARegisterDiskAppearedCallback(session, match, disk_appeared_callback, NULL);
+        CFRelease(match);
 
         CFRunLoopRun();
 
